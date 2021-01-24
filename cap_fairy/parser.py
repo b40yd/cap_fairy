@@ -49,6 +49,10 @@ class Parser:
         "。",
         "、",
         "'",
+        "“",
+        "”"
+        "‘",
+        "’"
         "`",
         "{",
         "}",
@@ -231,19 +235,19 @@ class Parser:
         mobile = None
         phone = None
         zip_code = None
-        address = address.replace("\r\n", " ").replace("\n", " ")
+        address = address.replace("\r\n", " ").replace("\n", " ").strip()
         for key in self.exclude_keys:
-            address = address.replace(key, " ")
+            address = address.replace(key, " ").strip()
 
         mobile_match = self.reg["mobile"].search(address)
         if mobile_match:
             mobile = mobile_match.group(0)
-            address = address.replace(mobile, " ")
+            address = address.replace(mobile, " ").strip()
 
         phone_match = self.reg["phone"].search(address)
         if phone_match:
             phone = phone_match.group(0)
-            address = address.replace(phone, " ")
+            address = address.replace(phone, " ").strip()
 
         zip_code_match = self.reg["zip_code"].search(address)
         if zip_code_match:
@@ -280,6 +284,7 @@ class Parser:
             return address, name
 
         province_code, province, address = self.parse_province(address)
+
         city_code, city, address = self.parse_city(address)
         area_code, area, address = self.parse_area(address)
 
