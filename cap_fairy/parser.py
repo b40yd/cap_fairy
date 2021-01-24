@@ -48,6 +48,17 @@ class Parser:
         ",",
         "。",
         "、",
+        "'",
+        "`",
+        "{",
+        "}",
+        "[",
+        "]",
+        "~",
+        "【",
+        "】",
+        "《",
+        "》",
     ]
 
     province_keys = [
@@ -164,6 +175,10 @@ class Parser:
     _province_short: dict = {}
     _city_short: dict = {}
     _area_short: dict = {}
+
+    _fix_provinces: list = []
+    _fix_citys: list = []
+    _fix_areas: list = []
 
     def __init__(self, logger=None):
         self.logger = logger or logging.getLogger(__name__)
@@ -319,19 +334,41 @@ class Parser:
             result["area_code"] = area_code
             result["address"] = address
 
-            print(area_code, area, address)  # 呈贡县
+            self._fix_areas.append({"old_name": "呈贡县", "new_name": "呈贡区"})
+            self._fix_handler(result)
 
-            old_names = [{"old_name": "呈贡县", "new_name": "呈贡区"}]
-            for _name in old_names:
-                if _name["old_name"] in result["address"]:
-                    result["area"] = _name["new_name"]
-                    result["area_code"] = self.get_ref_new_code(
-                        result["city_code"], _name["new_name"], AREAS)
-                    result["address"] = result["address"].replace(
-                        _name["old_name"], "")
-            self.logger.warning(f"{result} address need fix.")
+            self.logger.warning(
+                f"{result} maybe address need fix, it's auto fixed.")
 
         return result
+
+    def _fix_handler(self, result: dict):
+        if result:
+            if result["city_code"]:
+                for _name in self._fix_areas:
+                    if _name["old_name"] in result["address"]:
+                        result["area"] = _name["new_name"]
+                        result["area_code"] = self.get_ref_new_code(
+                            result["city_code"], _name["new_name"], AREAS)
+                        result["address"] = result["address"].replace(
+                            _name["old_name"], "")
+            elif result["province_code"]:
+                for _name in self._fix_citys:
+                    if _name["old_name"] in result["address"]:
+                        result["city"] = _name["new_name"]
+                        result["city_code"] = self.get_ref_new_code(
+                            result["city_code"], _name["new_name"], AREAS)
+                        result["address"] = result["address"].replace(
+                            _name["old_name"], "")
+
+            else:
+                for _name in self._fix_provinces:
+                    if _name["old_name"] in result["address"]:
+                        result["province"] = _name["new_name"]
+                        result["province_code"] = self.get_ref_new_code(
+                            result["province_code"], _name["new_name"], AREAS)
+                        result["address"] = result["address"].replace(
+                            _name["old_name"], "")
 
     def get_ref_new_code(self, code, new_name, names):
         _sub = self.get_sub_set(code[0:4], names)
