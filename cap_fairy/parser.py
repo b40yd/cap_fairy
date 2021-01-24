@@ -17,6 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+import logging
 import re
 
 from cap_fairy.data import AREAS, CITYS, PROVINCES
@@ -165,7 +166,7 @@ class Parser:
     _area_short: dict = {}
 
     def __init__(self, logger=None):
-        self.logger = logger
+        self.logger = logger or logging.getLogger(__name__)
         for code in PROVINCES:
             province = PROVINCES[code]
             self._province_short[code] = self._get_short(
@@ -182,7 +183,7 @@ class Parser:
             if "神农架林区" == area:
                 area = "神农架"
 
-            if len(area) > 2 and not "高新区" == area:
+            if len(area) > 2 and "高新区" != area:
                 self._area_short[code] = self._get_short(self.area_keys, area)
 
     def _get_short(self, names: dict, name: str):
@@ -197,12 +198,15 @@ class Parser:
             _name_tmp = names.get(code, None)
             _name_short_tmp = short.get(code, None)
 
-            if _name_tmp and _name_tmp in address:
+            if _name_tmp == "县":
+                continue
+
+            if _name_tmp and address.find(_name_tmp) == 0:
                 return code, _name_tmp, address.replace(_name_tmp, "")
-            elif _name_short_tmp and _name_short_tmp in address:
+            elif _name_short_tmp and address.find(_name_short_tmp) == 0:
                 return (
                     code,
-                    _name_short_tmp,
+                    _name_tmp,
                     address.replace(_name_short_tmp, ""),
                 )
 
@@ -231,7 +235,8 @@ class Parser:
             zip_code = zip_code_match.group(0)
             address = address.replace(zip_code, "")
         address = re.sub(" {2,}", " ", address)
-        _address = address
+
+        # _address = address
 
         def parse_name(address: str):
             lst = address.split(" ")
@@ -259,12 +264,11 @@ class Parser:
 
             return address, name
 
-        address, first_name = parse_name(address)
-
         province_code, province, address = self.parse_province(address)
         city_code, city, address = self.parse_city(address)
         area_code, area, address = self.parse_area(address)
 
+        address, first_name = parse_name(address)
         # print(self.get_name_by_ref(CONST_CITY, province_code, CITYS))
 
         result = {
@@ -310,11 +314,17 @@ class Parser:
                 (result["city"], ) = city.values()
                 (result["city_code"], ) = city.keys()
         if not result["area_code"]:
+            area_code, area, address = self.parse_area(result["address"])
+            result["area"] = area
+            result["area_code"] = area_code
+            result["address"] = address
+
             for key in self.area_keys:
-                if self.area_keys[key] in result["address"]:
-                    result["area"] = self.area_keys[key]
+                if key in result["address"]:
+                    result["area"] = key
                     result["area_code"] = key
-            self.logger.warning(f"Parse area failed.")
+            self.logger.warning(f"{result} address need fix.")
+
         return result
 
     def parse_province(self, address: str):
@@ -327,12 +337,12 @@ class Parser:
 
         return province_code, province, address
 
-    def parse_city(self, address: str, code: str = ""):
+    def parse_city(self, address: str):
         city_code, city, address = self.parse_by_name(self._city_short, CITYS,
                                                       address)
         for key in self.city_keys:
             if address.find(key) == 0:
-                if not key in ["市北区", "市南区", "市中区", "市辖区"]:
+                if key not in ["市北区", "市南区", "市中区", "市辖区"]:
                     address = address.replace(key, "")
 
         return city_code, city, address
@@ -343,35 +353,36 @@ class Parser:
 
         for key in self.area_keys:
             if address.find(key) == 0:
-                address = address.relace(key, "")
+                address = address.replace(key, "")
 
         return area_code, area, address
 
+    def get_sub_set(self, code, names, zero=""):
+        sub_set = {}
+        for i in range(1, 100):
+            _sub_code = ""
+            if i < 10:
+                _sub_code = f"0{i}"
+            else:
+                _sub_code = f"{i}"
+            sub_code = f"{code}{_sub_code}{zero}"
+
+            value = names.get(sub_code, None)
+            if value:
+                sub_set[sub_code] = value
+        return sub_set
+
     def get_name_by_ref(self, flag: int, code: str, names: dict):
         def get_ref(flag, code, names):
-            def get_sub_set(code, names, zero=""):
-                sub_set = {}
-                for i in range(1, 100):
-                    _sub_code = ""
-                    if i < 10:
-                        _sub_code = f"0{i}"
-                    else:
-                        _sub_code = f"{i}"
-                    sub_code = f"{code}{_sub_code}{zero}"
-
-                    value = names.get(sub_code, None)
-                    if value:
-                        sub_set[sub_code] = value
-                return sub_set
-
             def _get_sub_ref(flag, parent, sub, names):
                 if CONST_AREA == flag and sub != "00":
                     _code = f"{parent}{sub}"
-                    return get_sub_set(_code, names)
+                    return self.get_sub_set(_code, names)
                 if CONST_CITY == flag:
-                    _code = f"{parent}"
-
-                    return get_sub_set(_code, names, "00")
+                    # _code = f"{parent}"
+                    _value = names.get(f"{parent}{sub}00", None)
+                    if _value:
+                        return {f"{parent}{sub}00": _value}
                 if CONST_PROVINCE == flag:
                     _value = names.get(f"{parent}0000", None)
 
