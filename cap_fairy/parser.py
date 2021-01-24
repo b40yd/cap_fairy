@@ -19,6 +19,7 @@
 
 import logging
 import re
+from typing import Dict, List
 
 from cap_fairy.data import AREAS, CITYS, PROVINCES
 
@@ -348,6 +349,30 @@ class Parser:
                 f"{result} maybe address need fix, it's auto fixed.")
 
         return result
+
+    @property
+    def fix_areas(self):
+        return self._fix_areas
+
+    @fix_areas.setter
+    def fix_areas(self, fix_areas: List[Dict]):
+        self._fix_areas.extend(fix_areas)
+
+    @property
+    def fix_citys(self):
+        return self._fix_citys
+
+    @fix_citys.setter
+    def fix_citys(self, fix_citys: List[Dict]):
+        self._fix_citys.extend(fix_citys)
+
+    @property
+    def fix_provinces(self):
+        return self._fix_provinces
+
+    @fix_provinces.setter
+    def fix_provinces(self, fix_provinces: List[Dict]):
+        self._fix_provinces.extend(fix_provinces)
 
     def _fix_handler(self, result: dict):
         if result:
