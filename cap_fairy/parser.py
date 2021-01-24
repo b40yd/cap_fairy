@@ -236,6 +236,8 @@ class Parser:
         phone = None
         zip_code = None
         address = address.replace("\r\n", " ").replace("\n", " ").strip()
+        if not address:
+            return None
         for key in self.exclude_keys:
             address = address.replace(key, " ").strip()
 
