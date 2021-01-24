@@ -177,12 +177,12 @@ class Parser:
 
         for code in AREAS:
             area = AREAS[code]
-            if '雨花台区' == area:
-                area = '雨花区'
-            if '神农架林区' == area:
-                area = '神农架'
+            if "雨花台区" == area:
+                area = "雨花区"
+            if "神农架林区" == area:
+                area = "神农架"
 
-            if len(area) > 2 and not '高新区' == area:
+            if len(area) > 2 and not "高新区" == area:
                 self._area_short[code] = self._get_short(self.area_keys, area)
 
     def _get_short(self, names: dict, name: str):
@@ -196,12 +196,13 @@ class Parser:
         for code in names:
             _name_tmp = names.get(code, None)
             _name_short_tmp = short.get(code, None)
-            if _name_tmp in address:
+
+            if _name_tmp and _name_tmp in address:
                 return code, _name_tmp, address.replace(_name_tmp, "")
-            elif _name_short_tmp in address:
+            elif _name_short_tmp and _name_short_tmp in address:
                 return (
                     code,
-                    _name_tmp,
+                    _name_short_tmp,
                     address.replace(_name_short_tmp, ""),
                 )
 
@@ -283,36 +284,36 @@ class Parser:
         return self._fix_address(result)
 
     def _fix_address(self, result: dict):
-        if not result['province_code'] and result['city_code']:
+        if not result["province_code"] and result["city_code"]:
             province = self.get_name_by_ref(CONST_PROVINCE,
-                                            result['city_code'], PROVINCES)
+                                            result["city_code"], PROVINCES)
             if province:
-                result['province'], = province.values()
-                result['province_code'], = province.keys()
-        if not result['province_code'] and not result['city_code'] and result[
-                'area_code']:
-            city = self.get_name_by_ref(CONST_CITY, result['area_code'], CITYS)
+                (result["province"], ) = province.values()
+                (result["province_code"], ) = province.keys()
+        if (not result["province_code"] and not result["city_code"]
+                and result["area_code"]):
+            city = self.get_name_by_ref(CONST_CITY, result["area_code"], CITYS)
             if city:
-                result['city'], = city.values()
-                result['city_code'], = city.keys()
+                (result["city"], ) = city.values()
+                (result["city_code"], ) = city.keys()
 
             province = self.get_name_by_ref(CONST_PROVINCE,
-                                            result['area_code'], PROVINCES)
+                                            result["area_code"], PROVINCES)
 
             if province:
-                result['province'], = province.values()
-                result['province_code'], = province.keys()
+                (result["province"], ) = province.values()
+                (result["province_code"], ) = province.keys()
 
-        if not result['city_code'] and result['area_code']:
-            city = self.get_name_by_ref(CONST_CITY, result['area_code'], CITYS)
+        if not result["city_code"] and result["area_code"]:
+            city = self.get_name_by_ref(CONST_CITY, result["area_code"], CITYS)
             if city:
-                result['city'], = city.values()
-                result['city_code'], = city.keys()
-        if not result['area_code']:
+                (result["city"], ) = city.values()
+                (result["city_code"], ) = city.keys()
+        if not result["area_code"]:
             for key in self.area_keys:
-                if self.area_keys[key] in result['address']:
-                    result['area'] = self.area_keys[key]
-                    result['area_code'] = key
+                if self.area_keys[key] in result["address"]:
+                    result["area"] = self.area_keys[key]
+                    result["area_code"] = key
             self.logger.warning(f"Parse area failed.")
         return result
 
@@ -322,17 +323,17 @@ class Parser:
 
         for key in self.province_keys:
             if address.find(key) == 0:
-                address = address.replace(key, '')
+                address = address.replace(key, "")
 
         return province_code, province, address
 
-    def parse_city(self, address: str, code: str = ''):
+    def parse_city(self, address: str, code: str = ""):
         city_code, city, address = self.parse_by_name(self._city_short, CITYS,
                                                       address)
         for key in self.city_keys:
             if address.find(key) == 0:
-                if not key in ['市北区', '市南区', '市中区', '市辖区']:
-                    address = address.replace(key, '')
+                if not key in ["市北区", "市南区", "市中区", "市辖区"]:
+                    address = address.replace(key, "")
 
         return city_code, city, address
 
@@ -342,16 +343,16 @@ class Parser:
 
         for key in self.area_keys:
             if address.find(key) == 0:
-                address = address.relace(key, '')
+                address = address.relace(key, "")
 
         return area_code, area, address
 
     def get_name_by_ref(self, flag: int, code: str, names: dict):
         def get_ref(flag, code, names):
-            def get_sub_set(code, names, zero=''):
+            def get_sub_set(code, names, zero=""):
                 sub_set = {}
                 for i in range(1, 100):
-                    _sub_code = ''
+                    _sub_code = ""
                     if i < 10:
                         _sub_code = f"0{i}"
                     else:
@@ -364,13 +365,13 @@ class Parser:
                 return sub_set
 
             def _get_sub_ref(flag, parent, sub, names):
-                if CONST_AREA == flag and sub != '00':
+                if CONST_AREA == flag and sub != "00":
                     _code = f"{parent}{sub}"
                     return get_sub_set(_code, names)
                 if CONST_CITY == flag:
                     _code = f"{parent}"
 
-                    return get_sub_set(_code, names, '00')
+                    return get_sub_set(_code, names, "00")
                 if CONST_PROVINCE == flag:
                     _value = names.get(f"{parent}0000", None)
 
