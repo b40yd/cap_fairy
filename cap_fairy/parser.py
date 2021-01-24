@@ -319,13 +319,26 @@ class Parser:
             result["area_code"] = area_code
             result["address"] = address
 
-            for key in self.area_keys:
-                if key in result["address"]:
-                    result["area"] = key
-                    result["area_code"] = key
+            print(area_code, area, address)  # 呈贡县
+
+            old_names = [{"old_name": "呈贡县", "new_name": "呈贡区"}]
+            for _name in old_names:
+                if _name["old_name"] in result["address"]:
+                    result["area"] = _name["new_name"]
+                    result["area_code"] = self.get_ref_new_code(
+                        result["city_code"], _name["new_name"], AREAS)
+                    result["address"] = result["address"].replace(
+                        _name["old_name"], "")
             self.logger.warning(f"{result} address need fix.")
 
         return result
+
+    def get_ref_new_code(self, code, new_name, names):
+        _sub = self.get_sub_set(code[0:4], names)
+        for key in _sub:
+            if _sub[key] == new_name:
+                return key
+        return key
 
     def parse_province(self, address: str):
         province_code, province, address = self.parse_by_name(
@@ -350,7 +363,6 @@ class Parser:
     def parse_area(self, address: str):
         area_code, area, address = self.parse_by_name(self._area_short, AREAS,
                                                       address)
-
         for key in self.area_keys:
             if address.find(key) == 0:
                 address = address.replace(key, "")
